@@ -4,7 +4,9 @@ const qrcode = require('qrcode-terminal');
 const Tesseract = require("tesseract.js");
 const fs = require('fs');
 const sharp = require('sharp');
-const { Client, LocalAuth, Buttons } = require('whatsapp-web.js');
+const PDFParser = require('pdf-parse');
+const { Document, Packer, Paragraph } = require('docx');
+const { Client, LocalAuth, Buttons, MessageMedia } = require('whatsapp-web.js');
 const SESSION_FILE_PATH = './session.json';
 const client = new Client({
     authStrategy: new LocalAuth()
@@ -20,7 +22,7 @@ try {
         client.on('ready', () => {
             console.log('Client is ready!');
             client.getChats().then(async (chats) => {
-                const chaty = chats.find((chat) => chat.name === "Diksha Chor");
+                const chaty = chats.find((chat) => chat.name === "WhatsApp Himanshu");
                 client.sendMessage(chaty.id._serialized, "hello i am a bot");
             })
         });
@@ -30,27 +32,59 @@ try {
             console.log(session, "session");
         });
 
-        client.on('message', message => {
+        client.on('message', async message => {
             console.log(message, "message")
-            if (message.body === "Hi") {
-                // client.sendMessage(message.id.remote, "Yo whatsupp")
-                Input: [{ id: 'customId', body: 'button1' }, { body: 'button2' }, { body: 'button3' }, { body: 'button4' }]
 
-                const inputArray = [
-                    { body: 'Button 1', id: 'button1' },
-                    { body: 'Button 2', id: 'button2' },
-                    { body: 'Button 3', id: 'button3' }
-                ];
+            if (message.hasMedia) {
 
-                const buttonMessage = new Buttons(
-                    'Button message text',
-                    inputArray,
-                    'Button message title',
-                    'Button message footer'
-                )._format(inputArray);
-
-                client.sendMessage(message.id.remote, buttonMessage);
+                const media = await message.downloadMedia();
+                console.log(media, "Media");
+                const pdfData = Buffer.from(media.data, "base64");
+                const filePath = __dirname + (`/${Math.random() * 100}file.pdf`);
+                const docxFilePath = __dirname + (`/${Math.random() * 1000}file.docx`);
+                fs.writeFile(filePath, pdfData, 'binary', (err) => {
+                    if (err) {
+                        console.error('Error saving PDF file:', err);
+                    } else {
+                        console.log('PDF file saved successfully.');
+                        fs.readFile(filePath, async (err, data) => {
+                            if (err) {
+                                console.error("error", err);
+                            } else {
+                                const pdfData = await PDFParser(data);
+                                console.log("11111")
+                                // Extracted text from the PDF
+                                const textFromPDF = pdfData.text;
+                                console.log("11111")
+                                const doc = new Document({
+                                  sections:[{
+                                    properties: {},
+                                    children: [new Paragraph(textFromPDF)]
+                                  }]
+                                  });
+                                console.log("11111")
+                             
+                                console.log("11111")
+                                Packer.toBuffer(doc).then((buffer) => {
+                                    fs.writeFile(docxFilePath, buffer, (writeErr) => {
+                                        if (writeErr) {
+                                            console.error('Error saving the DOCX file:', writeErr);
+                                        } else {
+                                            console.log('PDF content written to DOCX file successfully.');
+                                            const media = MessageMedia.fromFilePath(docxFilePath);
+                                            client.sendMessage(message.id.remote, media);
+                                        }
+                                    });
+                                });
+                            }
+                        })
+                    }
+                });
             }
+
+
+
+
             if (message.type === "image") {
                 message.downloadMedia().then((val) => {
                     console.log(val, "val")
@@ -90,6 +124,7 @@ try {
                     // });
                 })
             }
+
         });
 
         client.initialize();
