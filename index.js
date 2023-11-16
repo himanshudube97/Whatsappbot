@@ -40,8 +40,8 @@ try {
                 const media = await message.downloadMedia();
                 console.log(media, "Media");
                 const pdfData = Buffer.from(media.data, "base64");
-                const filePath = __dirname + (`/${Math.random() * 100}file.pdf`);
-                const docxFilePath = __dirname + (`/${Math.random() * 1000}file.docx`);
+                const filePath = __dirname + (`/pdf/${Math.random() * 100}file.pdf`);
+                const docxFilePath = __dirname + (`/pdf/${Math.random() * 1000}file.docx`);
                 fs.writeFile(filePath, pdfData, 'binary', (err) => {
                     if (err) {
                         console.error('Error saving PDF file:', err);
