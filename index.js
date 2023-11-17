@@ -5,9 +5,17 @@ const Tesseract = require("tesseract.js");
 const fs = require('fs');
 const sharp = require('sharp');
 const PDFParser = require('pdf-parse');
+const dotenv = require("dotenv").config();
+const NewsAPI = require('newsapi');
+const apiKey = process.env.NEWS_API_KEY;
+console.log(apiKey,"key");
+const newsapi = new NewsAPI(apiKey);
 const { Document, Packer, Paragraph } = require('docx');
 const { Client, LocalAuth, Buttons, MessageMedia } = require('whatsapp-web.js');
+const { count } = require("console");
 const SESSION_FILE_PATH = './session.json';
+
+
 const client = new Client({
     authStrategy: new LocalAuth()
 });
@@ -34,53 +42,71 @@ try {
 
         client.on('message', async message => {
             console.log(message, "message")
-
-            if (message.hasMedia) {
-
-                const media = await message.downloadMedia();
-                console.log(media, "Media");
-                const pdfData = Buffer.from(media.data, "base64");
-                const filePath = __dirname + (`/pdf/${Math.random() * 100}file.pdf`);
-                const docxFilePath = __dirname + (`/pdf/${Math.random() * 1000}file.docx`);
-                fs.writeFile(filePath, pdfData, 'binary', (err) => {
-                    if (err) {
-                        console.error('Error saving PDF file:', err);
-                    } else {
-                        console.log('PDF file saved successfully.');
-                        fs.readFile(filePath, async (err, data) => {
-                            if (err) {
-                                console.error("error", err);
-                            } else {
-                                const pdfData = await PDFParser(data);
-                                console.log("11111")
-                                // Extracted text from the PDF
-                                const textFromPDF = pdfData.text;
-                                console.log("11111")
-                                const doc = new Document({
-                                  sections:[{
-                                    properties: {},
-                                    children: [new Paragraph(textFromPDF)]
-                                  }]
-                                  });
-                                console.log("11111")
-                             
-                                console.log("11111")
-                                Packer.toBuffer(doc).then((buffer) => {
-                                    fs.writeFile(docxFilePath, buffer, (writeErr) => {
-                                        if (writeErr) {
-                                            console.error('Error saving the DOCX file:', writeErr);
-                                        } else {
-                                            console.log('PDF content written to DOCX file successfully.');
-                                            const media = MessageMedia.fromFilePath(docxFilePath);
-                                            client.sendMessage(message.id.remote, media);
-                                        }
-                                    });
-                                });
-                            }
-                        })
-                    }
-                });
+         
+            if(message.body.substring(0,4).toLowerCase() ==="news"){
+                const str = message.body.split(",");
+                const lang = str[1] ? str[1].toLowerCase() : "en";
+                const country = str[2]? str[2].toLowerCase() : "in";
+                newsapi.v2.topHeadlines({
+                    category: 'politics',
+                    language: lang,
+                    country: country
+                  }).then(response => {
+                    console.log(response);
+                    let messageToSend = ""; 
+                    response.articles.map((item, index)=>{
+                        messageToSend = messageToSend + `*${+index+1}*` + "." + `*Title*- ${item.title}. \n *Description* -${item.description}.\n *URL*- ${item.url}\n\n`
+                    })
+                    client.sendMessage(message.id.remote, messageToSend)
+                  });
+                   
             }
+            // if (message.hasMedia) {
+
+            //     const media = await message.downloadMedia();
+            //     console.log(media, "Media");
+            //     const pdfData = Buffer.from(media.data, "base64");
+            //     const filePath = __dirname + (`/pdf/${Math.random() * 100}file.pdf`);
+            //     const docxFilePath = __dirname + (`/pdf/${Math.random() * 1000}file.docx`);
+            //     fs.writeFile(filePath, pdfData, 'binary', (err) => {
+            //         if (err) {
+            //             console.error('Error saving PDF file:', err);
+            //         } else {
+            //             console.log('PDF file saved successfully.');
+            //             fs.readFile(filePath, async (err, data) => {
+            //                 if (err) {
+            //                     console.error("error", err);
+            //                 } else {
+            //                     const pdfData = await PDFParser(data);
+            //                     console.log("11111")
+            //                     // Extracted text from the PDF
+            //                     const textFromPDF = pdfData.text;
+            //                     console.log("11111")
+            //                     const doc = new Document({
+            //                       sections:[{
+            //                         properties: {},
+            //                         children: [new Paragraph(textFromPDF)]
+            //                       }]
+            //                       });
+            //                     console.log("11111")
+                             
+            //                     console.log("11111")
+            //                     Packer.toBuffer(doc).then((buffer) => {
+            //                         fs.writeFile(docxFilePath, buffer, (writeErr) => {
+            //                             if (writeErr) {
+            //                                 console.error('Error saving the DOCX file:', writeErr);
+            //                             } else {
+            //                                 console.log('PDF content written to DOCX file successfully.');
+            //                                 const media = MessageMedia.fromFilePath(docxFilePath);
+            //                                 client.sendMessage(message.id.remote, media);
+            //                             }
+            //                         });
+            //                     });
+            //                 }
+            //             })
+            //         }
+            //     });
+            // }
 
 
 

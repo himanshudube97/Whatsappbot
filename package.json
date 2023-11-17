@@ -14,7 +14,9 @@
   "dependencies": {
     "@pdftron/pdfnet-node": "^10.5.0",
     "docx": "^8.2.4",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "newsapi": "^2.4.1",
     "nodemon": "^3.0.1",
     "openai": "^4.19.0",
     "pdf-parse": "^1.1.1",

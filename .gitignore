@@ -123,6 +123,7 @@ dist
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+.wwebjs_cache/
 
 .wwebjs_auth
 
